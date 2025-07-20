@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bee Hive Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '🐝';
+            font-size: 3rem;
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            animation: buzz 2s infinite;
+        }
+
+        @keyframes buzz {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            25% { transform: translateX(5px) rotate(5deg); }
+            75% { transform: translateX(-5px) rotate(-5deg); }
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            background: rgba(46, 204, 113, 0.2);
+            border: 2px solid #2ecc71;
+            color: #2ecc71;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .setup-section, .monitor-section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #f39c12;
+            transition: all 0.3s ease;
+        }
+
+        .setup-section:hover, .monitor-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .setup-section h2, .monitor-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #f39c12;
+            transform: scale(1.02);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            margin: 10px 5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transition: all 0.3s;
+            transform: translate(-50%, -50%);
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(243, 156, 18, 0.4);
+        }
+
+        .btn.danger {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .btn.danger:hover {
+            box-shadow: 0 15px 30px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn.warning {
+            background: linear-gradient(45deg, #f1c40f, #f39c12);
+        }
+
+        .btn.warning:hover {
+            box-shadow: 0 15px 30px rgba(241, 196, 64, 0.4);
+        }
+
+        .btn.info {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+        }
+
+        .btn.info:hover {
+            box-shadow: 0 15px 30px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn.success {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+        }
+
+        .btn.success:hover {
+            box-shadow: 0 15px 30px rgba(39, 174, 96, 0.4);
+        }
+
+        .btn.purple {
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+        }
+
+        .btn.purple:hover {
+            box-shadow: 0 15px 30px rgba(155, 89, 182, 0.4);
+        }
+
+        .status-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .status-card {
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .status-card:hover::before {
+            left: 100%;
+        }
+
+        .temp-card { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .danger-card { background: linear-gradient(135deg, #8e44ad, #732d91); }
+        .colony-card { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .activity-card { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .sound-card { background: linear-gradient(135deg, #f39c12, #e67e22); }
+
+        .status-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin: 15px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-label {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .status-description {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .alert-log {
+            max-height: 350px;
+            overflow-y: auto;
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            border: 2px solid #34495e;
+        }
+
+        .alert-item {
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            background: rgba(52, 152, 219, 0.1);
+            border-left: 4px solid #3498db;
+            transition: all 0.3s;
+        }
+
+        .alert-item:hover {
+            background: rgba(52, 152, 219, 0.2);
+            transform: translateX(5px);
+        }
+
+        .alert-item.danger { 
+            background: rgba(231, 76, 60, 0.1);
+            border-left-color: #e74c3c;
+        }
+
+        .alert-item.warning { 
+            background: rgba(241, 196, 64, 0.1);
+            border-left-color: #f1c40f;
+        }
+
+        .alert-item.success { 
+            background: rgba(39, 174, 96, 0.1);
+            border-left-color: #27ae60;
+        }
+
+        .instructions {
+            background: linear-gradient(135deg, #e8f6f3, #d5f4e6);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 5px solid #27ae60;
+            position: relative;
+        }
+
+        .instructions::before {
+            content: '💡';
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            font-size: 1.5rem;
+        }
+
+        .instructions h3 {
+            color: #27ae60;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .telegram-status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .telegram-connected {
+            background: rgba(46, 204, 113, 0.2);
+            color: #27ae60;
+            border: 1px solid #27ae60;
+        }
+
+        .telegram-disconnected {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 1000;
+            max-width: 350px;
+            animation: slideIn 0.5s ease;
+            color: white;
+            font-weight: bold;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Audio Visualizer Styles */
+        .audio-section {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-left: 5px solid #667eea;
+            color: white;
+        }
+
+        .audio-section h2 {
+            color: white;
+        }
+
+        .volume-visualizer {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .volume-bar {
+            width: 100%;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 15px 0;
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .volume-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71, #f1c40f, #e67e22, #e74c3c);
+            width: 0%;
+            transition: width 0.1s linear;
+            border-radius: 18px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .volume-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .audio-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .audio-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .sound-levels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .sound-metric {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .sound-metric-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .sound-metric-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .threshold-controls {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .threshold-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .threshold-control label {
+            min-width: 120px;
+            color: white;
+        }
+
+        .threshold-control input[type="range"] {
+            flex: 1;
+            margin: 0 10px;
+        }
+
+        .threshold-value {
+            min-width: 50px;
+            text-align: right;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 { font-size: 2rem; }
+            .header::before { font-size: 2rem; top: 25px; left: 20px; }
+            .main-content { padding: 20px; }
+            .status-panel { grid-template-columns: 1fr; }
+            .status-indicator { position: static; margin-top: 10px; }
+            .sound-levels { grid-template-columns: 1fr; }
+            .audio-controls { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍯 Bee Hive Monitor</h1>
+            <p>Advanced IoT monitoring for your bee colonies</p>
+            <div class="status-indicator" id="systemStatus">🟢 System Online</div>
+        </div>
+
+        <div class="main-content">
+            <!-- Audio Monitoring Section -->
+            <div class="setup-section audio-section">
+                <h2>🎙️ Audio Monitoring System</h2>
+                <div class="volume-visualizer">
+                    <div class="audio-status">
+                        <span id="micStatus">🎤 Microphone: Disconnected</span>
+                        <span id="audioLevel">📊 Level: 0%</span>
+                    </div>
+                    <div class="volume-bar">
+                        <div class="volume-fill" id="volumeFill"></div>
+                    </div>
+                    <div class="sound-levels">
+                        <div class="sound-metric">
+                            <div class="sound-metric-value" id="currentVolume">0%</div>
+                            <div class="sound-metric-label">Current Level</div>
+                        </div>
+                        <div class="sound-metric">
+                            <div class="sound-metric-value" id="averageVolume">0%</div>
+                            <div class="sound-metric-label">5min Average</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="threshold-controls">
+                    <h3>🎯 Alert Thresholds</h3>
+                    <div class="threshold-control">
+                        <label>High Activity:</label>
+                        <input type="range" id="highThreshold" min="0" max="100" value="70" onchange="updateThreshold('high', this.value)">
+                        <span class="threshold-value" id="highThresholdValue">70%</span>
+                    </div>
+                    <div class="threshold-control">
+                        <label>Low Activity:</label>
+                        <input type="range" id="lowThreshold" min="0" max="100" value="20" onchange="updateThreshold('low', this.value)">
+                        <span class="threshold-value" id="lowThresholdValue">20%</span>
+                    </div>
+                    <div class="threshold-control">
+                        <label>Swarm Alert:</label>
+                        <input type="range" id="swarmThreshold" min="0" max="100" value="85" onchange="updateThreshold('swarm', this.value)">
+                        <span class="threshold-value" id="swarmThresholdValue">85%</span>
+                    </div>
+                </div>
+                <div class="audio-controls">
+                    <button class="btn purple" onclick="toggleAudioMonitoring()" id="audioToggle">🎤 Start Monitoring</button>
+                    <button class="btn info" onclick="calibrateAudio()">⚙️ Calibrate</button>
+                    <button class="btn success" onclick="testAudioAlert()">🔔 Test Audio Alert</button>
+                </div>
+            </div>
+
+            <!-- Setup Section -->
+            <div class="setup-section">
+                <h2>📱 Telegram Notification Setup</h2>
+                <div class="form-group">
+                    <label for="botToken">Telegram Bot Token</label>
+                    <input type="password" id="botToken" placeholder="Enter your bot token" />
+                </div>
+                <div class="form-group">
+                    <label for="chatId">Chat ID</label>
+                    <input type="text" id="chatId" placeholder="Your Telegram chat ID" />
+                </div>
+                <div class="form-group">
+                    <label for="beeKeeperName">Beekeeper Name</label>
+                    <input type="text" id="beeKeeperName" placeholder="Enter your name" />
+                </div>
+                <div class="form-group">
+                    <label for="hiveLocation">Hive Location</label>
+                    <input type="text" id="hiveLocation" placeholder="e.g., Garden Hive #1" />
+                </div>
+                <button class="btn" onclick="saveSettings()">💾 Save Settings</button>
+                <button class="btn info" onclick="testConnection()">🔗 Test Connection</button>
+                <span class="telegram-status" id="telegramStatus">⚪ Not Connected</span>
+            </div>
+
+            <!-- Status Panel -->
+            <div class="monitor-section">
+                <h2>📊 Real-Time Hive Monitoring</h2>
+                <div class="status-panel">
+                    <div class="status-card temp-card">
+                        <div class="status-label">🌡️ Temperature</div>
+                        <div class="status-value" id="tempValue">32°C</div>
+                        <div class="status-description">Optimal: 34-36°C</div>
+                    </div>
+                    <div class="status-card sound-card">
+                        <div class="status-label">🔊 Sound Level</div>
+                        <div class="status-value" id="soundValue">0%</div>
+                        <div class="status-description">Bee activity indicator</div>
+                    </div>
+                    <div class="status-card danger-card">
+                        <div class="status-label">⚠️ Alert Level</div>
+                        <div class="status-value" id="dangerValue">LOW</div>
+                        <div class="status-description">All systems normal</div>
+                    </div>
+                    <div class="status-card colony-card">
+                        <div class="status-label">🐝 Colony Health</div>
+                        <div class="status-value" id="colonyValue">GOOD</div>
+                        <div class="status-description">Active & productive</div>
+                    </div>
+                    <div class="status-card activity-card">
+                        <div class="status-label">📈 Activity</div>
+                        <div class="status-value" id="activityValue">85%</div>
+                        <div class="status-description">High activity level</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Alerts -->
+            <div class="setup-section">
+                <h2>🚨 Alert System Testing</h2>
+                <p>Test your notification system with simulated hive conditions:</p>
+                <br>
+                <button class="btn danger" onclick="sendAlert('critical', '🚨 CRITICAL: Hive temperature dangerously high (42°C)! Immediate attention required!')">🚨 Critical Alert</button>
+                <button class="btn warning" onclick="sendAlert('temperature', '🌡️ WARNING: High temperature detected (38°C) - Monitor closely')">🌡️ Temperature Warning</button>
+                <button class="btn info" onclick="sendAlert('colony', '🐝 INFO: Unusual bee activity patterns detected - Check colony status')">🐝 Colony Alert</button>
+                <button class="btn purple" onclick="sendAlert('swarm', '🚁 SWARM ALERT: Potential swarming activity detected - High audio levels!')">🚁 Swarm Alert</button>
+                <button class="btn success" onclick="sendAlert('normal', '✅ All systems normal - Hive conditions optimal')">✅ Normal Status</button>
+            </div>
+
+            <!-- Instructions -->
+            <div class="instructions">
+                <h3>📋 Setup Instructions</h3>
+                <p><strong>Creating your Telegram Bot:</strong></p>
+                <p>1. Message @BotFather on Telegram and type /newbot</p>
+                <p>2. Follow the prompts to create your bot and get the token</p>
+                <p>3. Start a chat with your new bot and send any message</p>
+                <p>4. Visit https://api.telegram.org/bot[YOUR_TOKEN]/getUpdates to find your chat ID</p>
+                <br>
+                <p><strong>Audio Monitoring Features:</strong></p>
+                <p>• Real-time sound level visualization from hive microphone</p>
+                <p>• Customizable alert thresholds for different bee behaviors</p>
+                <p>• Swarm detection through elevated audio activity</p>
+                <p>• Colony health assessment via sound pattern analysis</p>
+                <br>
+                <p><strong>Integration Options:</strong></p>
+                <p>• Connect Arduino/Raspberry Pi sensors for real-time monitoring</p>
+                <p>• Set up IFTTT webhooks for external trigger integration</p>
+                <p>• Use ESP32/WiFi modules for wireless sensor networks</p>
+                <p>• Implement threshold-based automatic alerting</p>
+            </div>
+
+            <!-- Alert Log -->
+            <div class="setup-section">
+                <h2>📜 Alert History & System Log</h2>
+                <div class="alert-log" id="alertLog">
+                    <div class="alert-item">
+                        <strong>[SYSTEM]</strong> Bee Hive Monitor initialized - Ready to protect your colonies 🐝
+                    </div>
+                </div>
+                <br>
+                <button class="btn info" onclick="clearLog()">🗑️ Clear Log</button>
+                <button class="btn" onclick="exportLog()">📤 Export Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      // Global variables
+let settings = {
+    botToken: '8106774099:AAHijGnCUqhuChnULaz1u66tsCvuh4_dl5s',
+    chatId: '7116960637',
+    beeKeeperName: 'John',
+    hiveLocation: 'kitui'
+};
+
+let isConnected = false;
+let audioContext = null;
+let analyser = null;
+let microphone = null;
+let isMonitoring = false;
+let volumeHistory = [];
+let lastAlertTime = 0;
+let alertCooldown = 30000; // 30 seconds between alerts
+let animationId = null;
+
+// Audio monitoring variables
+let thresholds = {
+    high: 70,
+    low: 20,
+    swarm: 85
+};
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadSettings();
+    updateConnectionStatus();
+    simulateSystemActivity();
+});
+
+// Load saved settings
+function loadSettings() {
+    try {
+        const saved = JSON.parse(sessionStorage.getItem('beeHiveSettings') || '{}');
+        settings = { ...settings, ...saved };
+        
+        document.getElementById('botToken').value = settings.botToken || '';
+        document.getElementById('chatId').value = settings.chatId || '';
+        document.getElementById('beeKeeperName').value = settings.beeKeeperName || '';
+        document.getElementById('hiveLocation').value = settings.hiveLocation || '';
+        
+        // Load audio thresholds
+        const savedThresholds = JSON.parse(sessionStorage.getItem('audioThresholds') || '{}');
+        thresholds = { ...thresholds, ...savedThresholds };
+        
+        document.getElementById('highThreshold').value = thresholds.high;
+        document.getElementById('lowThreshold').value = thresholds.low;
+        document.getElementById('swarmThreshold').value = thresholds.swarm;
+        updateThresholdDisplays();
+        
+        updateConnectionStatus();
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        addToLog('Error loading saved settings', 'danger');
+    }
+}
+
+// Save settings
+function saveSettings() {
+    try {
+        settings.botToken = document.getElementById('botToken').value.trim();
+        settings.chatId = document.getElementById('chatId').value.trim();
+        settings.beeKeeperName = document.getElementById('beeKeeperName').value.trim();
+        settings.hiveLocation = document.getElementById('hiveLocation').value.trim();
+        
+        // Save audio thresholds
+        thresholds.high = parseInt(document.getElementById('highThreshold').value);
+        thresholds.low = parseInt(document.getElementById('lowThreshold').value);
+        thresholds.swarm = parseInt(document.getElementById('swarmThreshold').value);
+        
+        // Validate required fields
+        if (!settings.botToken || !settings.chatId) {
+            showNotification('warning', 'Please enter both Bot Token and Chat ID');
+            return;
+        }
+        
+        sessionStorage.setItem('beeHiveSettings', JSON.stringify(settings));
+        sessionStorage.setItem('audioThresholds', JSON.stringify(thresholds));
+        
+        addToLog('Settings saved successfully', 'success');
+        
+        // Show confirmation
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.innerHTML = '<div class="loading"></div> Saving...';
+        
+        setTimeout(() => {
+            btn.textContent = '✅ Saved!';
+            btn.className = 'btn success';
+            
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.className = 'btn';
+            }, 2000);
+        }, 1000);
+        
+        updateConnectionStatus();
+        
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        addToLog('Error saving settings', 'danger');
+    }
+}
+
+// Audio monitoring functions
+async function startAudioMonitoring() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        microphone = audioContext.createMediaStreamSource(stream);
+        
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.8;
+        microphone.connect(analyser);
+        
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        isMonitoring = true;
+        document.getElementById('micStatus').textContent = '🎤 Microphone: Connected';
+        document.getElementById('audioToggle').textContent = '🎤 Stop Monitoring';
+        document.getElementById('audioToggle').className = 'btn danger';
+        
+        addToLog('Audio monitoring started - Microphone active', 'success');
+        showNotification('success', '🎤 Audio monitoring started successfully!');
+        
+        function updateAudio() {
+            if (!isMonitoring) return;
+            
+            analyser.getByteFrequencyData(dataArray);
+            
+            // Calculate volume level
+            let sum = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                sum += dataArray[i];
+            }
+            const average = sum / bufferLength;
+            const volumeLevel = Math.round((average / 255) * 100);
+            
+            // Update visualizations
+            updateVolumeDisplay(volumeLevel);
+            
+            // Store for averaging
+            volumeHistory.push(volumeLevel);
+            if (volumeHistory.length > 300) { // 5 minutes at ~60fps
+                volumeHistory.shift();
+            }
+            
+            // Check thresholds
+            checkAudioThresholds(volumeLevel);
+            
+            animationId = requestAnimationFrame(updateAudio);
+        }
+        
+        updateAudio();
+        
+    } catch (error) {
+        console.error('Error starting audio monitoring:', error);
+        addToLog('Error starting audio monitoring: ' + error.message, 'danger');
+        showNotification('danger', '❌ Failed to access microphone');
+        
+        document.getElementById('micStatus').textContent = '🎤 Microphone: Error';
+        document.getElementById('audioToggle').textContent = '🎤 Start Monitoring';
+        document.getElementById('audioToggle').className = 'btn purple';
+    }
+}
+
+function stopAudioMonitoring() {
+    isMonitoring = false;
+    
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+    }
+    
+    if (microphone) {
+        microphone.disconnect();
+    }
+    
+    if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+    }
+    
+    document.getElementById('micStatus').textContent = '🎤 Microphone: Disconnected';
+    document.getElementById('audioToggle').textContent = '🎤 Start Monitoring';
+    document.getElementById('audioToggle').className = 'btn purple';
+    
+    // Reset displays
+    updateVolumeDisplay(0);
+    document.getElementById('currentVolume').textContent = '0%';
+    document.getElementById('averageVolume').textContent = '0%';
+    document.getElementById('audioLevel').textContent = '📊 Level: 0%';
+    
+    addToLog('Audio monitoring stopped', 'info');
+    showNotification('info', '🎤 Audio monitoring stopped');
+}
+
+function toggleAudioMonitoring() {
+    if (isMonitoring) {
+        stopAudioMonitoring();
+    } else {
+        startAudioMonitoring();
+    }
+}
+
+function updateVolumeDisplay(level) {
+    const volumeFill = document.getElementById('volumeFill');
+    const currentVolume = document.getElementById('currentVolume');
+    const audioLevel = document.getElementById('audioLevel');
+    const soundValue = document.getElementById('soundValue');
+    
+    // Update volume bar
+    volumeFill.style.width = level + '%';
+    
+    // Update text displays
+    currentVolume.textContent = level + '%';
+    audioLevel.textContent = `📊 Level: ${level}%`;
+    soundValue.textContent = level + '%';
+    
+    // Calculate 5-minute average
+    if (volumeHistory.length > 0) {
+        const average = Math.round(volumeHistory.reduce((a, b) => a + b, 0) / volumeHistory.length);
+        document.getElementById('averageVolume').textContent = average + '%';
+    }
+    
+    // Update activity based on sound level
+    let activity = 'LOW';
+    let activityPercent = Math.min(level, 100);
+    
+    if (level > 60) activity = 'HIGH';
+    else if (level > 30) activity = 'MODERATE';
+    
+    document.getElementById('activityValue').textContent = activityPercent + '%';
+}
+
+function checkAudioThresholds(level) {
+    const now = Date.now();
+    
+    // Prevent spam alerts
+    if (now - lastAlertTime < alertCooldown) return;
+    
+    let alertMessage = '';
+    let alertType = '';
+    
+    if (level >= thresholds.swarm) {
+        alertMessage = `🚁 SWARM ALERT: Extremely high audio activity detected (${level}%)! Possible swarming behavior - Check hive immediately!`;
+        alertType = 'swarm';
+        updateColonyStatus('SWARM RISK', 'danger');
+    } else if (level >= thresholds.high) {
+        alertMessage = `🔊 HIGH ACTIVITY: Elevated bee activity detected (${level}%) - Monitor for unusual behavior`;
+        alertType = 'activity';
+        updateColonyStatus('VERY ACTIVE', 'warning');
+    } else if (level <= thresholds.low && volumeHistory.length > 60) {
+        // Only alert for sustained low activity
+        const recentAverage = volumeHistory.slice(-60).reduce((a, b) => a + b, 0) / 60;
+        if (recentAverage <= thresholds.low) {
+            alertMessage = `🔇 LOW ACTIVITY: Unusually quiet hive (${level}%) - Check colony health`;
+            alertType = 'low_activity';
+            updateColonyStatus('LOW ACTIVITY', 'warning');
+        }
+    } else {
+        updateColonyStatus('ACTIVE', 'success');
+        return; // No alert needed
+    }
+    
+    if (alertMessage) {
+        sendAlert(alertType, alertMessage);
+        lastAlertTime = now;
+    }
+}
+
+function updateColonyStatus(status, type) {
+    const colonyValue = document.getElementById('colonyValue');
+    const dangerValue = document.getElementById('dangerValue');
+    
+    colonyValue.textContent = status;
+    
+    switch (type) {
+        case 'danger':
+            dangerValue.textContent = 'HIGH';
+            break;
+        case 'warning':
+            dangerValue.textContent = 'MODERATE';
+            break;
+        case 'success':
+            dangerValue.textContent = 'LOW';
+            break;
+    }
+}
+
+function updateThreshold(type, value) {
+    thresholds[type] = parseInt(value);
+    document.getElementById(type + 'ThresholdValue').textContent = value + '%';
+    
+    // Save to storage
+    sessionStorage.setItem('audioThresholds', JSON.stringify(thresholds));
+    
+    addToLog(`${type.charAt(0).toUpperCase() + type.slice(1)} threshold updated to ${value}%`, 'info');
+}
+
+function updateThresholdDisplays() {
+    document.getElementById('highThresholdValue').textContent = thresholds.high + '%';
+    document.getElementById('lowThresholdValue').textContent = thresholds.low + '%';
+    document.getElementById('swarmThresholdValue').textContent = thresholds.swarm + '%';
+}
+
+function calibrateAudio() {
+    if (!isMonitoring) {
+        showNotification('warning', 'Start audio monitoring first');
+        return;
+    }
+    
+    showNotification('info', '🔧 Calibrating audio levels...');
+    addToLog('Starting audio calibration - Analyzing baseline levels', 'info');
+    
+    // Collect data for 10 seconds
+    const calibrationData = [];
+    const startTime = Date.now();
+    
+    function collectCalibrationData() {
+        if (Date.now() - startTime < 10000) { // 10 seconds
+            if (volumeHistory.length > 0) {
+                calibrationData.push(volumeHistory[volumeHistory.length - 1]);
+            }
+            setTimeout(collectCalibrationData, 100);
+        } else {
+            // Calculate new thresholds based on collected data
+            const average = calibrationData.reduce((a, b) => a + b, 0) / calibrationData.length;
+            const max = Math.max(...calibrationData);
+            
+            thresholds.low = Math.max(5, Math.round(average * 0.3));
+            thresholds.high = Math.min(95, Math.round(average * 2.5));
+            thresholds.swarm = Math.min(100, Math.round(max * 0.9));
+            
+            // Update UI
+            document.getElementById('lowThreshold').value = thresholds.low;
+            document.getElementById('highThreshold').value = thresholds.high;
+            document.getElementById('swarmThreshold').value = thresholds.swarm;
+            updateThresholdDisplays();
+            
+            // Save settings
+            sessionStorage.setItem('audioThresholds', JSON.stringify(thresholds));
+            
+            showNotification('success', '✅ Audio calibration complete!');
+            addToLog(`Calibration complete - Low: ${thresholds.low}%, High: ${thresholds.high}%, Swarm: ${thresholds.swarm}%`, 'success');
+        }
+    }
+    
+    collectCalibrationData();
+}
+
+function testAudioAlert() {
+    const testLevel = 85;
+    showNotification('info', '🔔 Testing audio alert system...');
+    addToLog('Testing audio alert system with simulated high activity', 'info');
+    
+    // Simulate high audio level
+    updateVolumeDisplay(testLevel);
+    
+    setTimeout(() => {
+        sendAlert('test', `🧪 TEST ALERT: Simulated high bee activity (${testLevel}%) - Audio monitoring system is working correctly!`);
+    }, 1000);
+}
+
+// Test Telegram connection
+async function testConnection() {
+    if (!settings.botToken || !settings.chatId) {
+        showNotification('warning', 'Please enter Bot Token and Chat ID first');
+        return;
+    }
+    
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.innerHTML = '<div class="loading"></div> Testing...';
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch(`https://api.telegram.org/bot${settings.botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: settings.chatId,
+                text: `🧪 TEST MESSAGE from Bee Hive Monitor\n\n✅ Connection successful!\n🐝 Beekeeper: ${settings.beeKeeperName}\n📍 Location: ${settings.hiveLocation}\n⏰ Time: ${new Date().toLocaleString()}`,
+                parse_mode: 'HTML'
+            })
+        });
+        
+        if (response.ok) {
+            isConnected = true;
+            showNotification('success', '✅ Telegram connection successful!');
+            addToLog('Telegram connection test successful', 'success');
+            
+            btn.textContent = '✅ Connected!';
+            btn.className = 'btn success';
+        } else {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+    } catch (error) {
+        isConnected = false;
+        showNotification('danger', '❌ Connection failed: ' + error.message);
+        addToLog('Telegram connection failed: ' + error.message, 'danger');
+        
+        btn.textContent = '❌ Failed';
+        btn.className = 'btn danger';
+    }
+    
+    setTimeout(() => {
+        btn.textContent = originalText;
+        btn.className = 'btn info';
+        btn.disabled = false;
+    }, 3000);
+    
+    updateConnectionStatus();
+}
+
+// Send alert to Telegram
+async function sendAlert(type, message) {
+    if (!settings.botToken || !settings.chatId) {
+        addToLog('Cannot send alert - Telegram not configured', 'warning');
+        return;
+    }
+    
+    const timestamp = new Date().toLocaleString();
+    const fullMessage = `🚨 BEE HIVE ALERT 🚨\n\n${message}\n\n🐝 Beekeeper: ${settings.beeKeeperName}\n📍 Hive: ${settings.hiveLocation}\n⏰ Time: ${timestamp}`;
+    
+    try {
+        const response = await fetch(`https://api.telegram.org/bot${settings.botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: settings.chatId,
+                text: fullMessage,
+                parse_mode: 'HTML'
+            })
+        });
+        
+        if (response.ok) {
+            addToLog(`Alert sent: ${message}`, getAlertClass(type));
+            showNotification('success', '📱 Alert sent to Telegram');
+        } else {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+    } catch (error) {
+        addToLog(`Failed to send alert: ${error.message}`, 'danger');
+        showNotification('danger', '❌ Failed to send alert');
+    }
+}
+
+function getAlertClass(type) {
+    switch (type) {
+        case 'critical':
+        case 'danger':
+        case 'swarm':
+            return 'danger';
+        case 'temperature':
+        case 'warning':
+        case 'activity':
+        case 'low_activity':
+            return 'warning';
+        case 'normal':
+        case 'success':
+            return 'success';
+        default:
+            return 'info';
+    }
+}
+
+// Update connection status display
+function updateConnectionStatus() {
+    const statusElement = document.getElementById('telegramStatus');
+    
+    if (settings.botToken && settings.chatId) {
+        statusElement.textContent = '🟢 Configured';
+        statusElement.className = 'telegram-status telegram-connected';
+        isConnected = true;
+    } else {
+        statusElement.textContent = '🔴 Not Configured';
+        statusElement.className = 'telegram-status telegram-disconnected';
+        isConnected = false;
+    }
+}
+
+// Add message to log
+function addToLog(message, type = 'info') {
+    const log = document.getElementById('alertLog');
+    const timestamp = new Date().toLocaleTimeString();
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = `alert-item ${type}`;
+    logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+    
+    log.appendChild(logEntry);
+    log.scrollTop = log.scrollHeight;
+}
+
+// Clear log
+function clearLog() {
+    const log = document.getElementById('alertLog');
+    log.innerHTML = '<div class="alert-item"><strong>[SYSTEM]</strong> Log cleared - Ready to monitor your hive 🐝</div>';
+    showNotification('info', '🗑️ Alert log cleared');
+}
+
+// Export log
+function exportLog() {
+    const log = document.getElementById('alertLog');
+    const logText = log.innerText;
+    
+    const blob = new Blob([logText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bee-hive-log-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showNotification('success', '📤 Log exported successfully');
+    addToLog('Alert log exported to file', 'info');
+}
+
+// Show notification
+function showNotification(type, message) {
+    // Remove existing notifications
+    const existing = document.querySelectorAll('.notification');
+    existing.forEach(n => n.remove());
+    
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    
+    // Set background color based on type
+    switch (type) {
+        case 'success':
+            notification.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
+            break;
+        case 'warning':
+            notification.style.background = 'linear-gradient(45deg, #f1c40f, #f39c12)';
+            break;
+        case 'danger':
+            notification.style.background = 'linear-gradient(45deg, #e74c3c, #c0392b)';
+            break;
+        default:
+            notification.style.background = 'linear-gradient(45deg, #3498db, #2980b9)';
+    }
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Simulate system activity (for demo purposes)
+function simulateSystemActivity() {
+    // Simulate temperature readings
+    setInterval(() => {
+        const temp = 32 + Math.random() * 6; // 32-38°C
+        document.getElementById('tempValue').textContent = temp.toFixed(1) + '°C';
+        
+        // Temperature alerts
+        if (temp > 37) {
+            const now = Date.now();
+            if (now - lastAlertTime > alertCooldown) {
+                sendAlert('temperature', `🌡️ HIGH TEMPERATURE: ${temp.toFixed(1)}°C detected - Monitor hive for overheating`);
+                lastAlertTime = now;
+            }
+        }
+    }, 10000); // Every 10 seconds
+    
+    // Update system status
+    setInterval(() => {
+        const statuses = ['🟢 System Online', '🟡 Monitoring', '🔵 Data Sync'];
+        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+        document.getElementById('systemStatus').textContent = randomStatus;
+    }, 30000); // Every 30 seconds
+}
+    </script>
+</body>
+</html>

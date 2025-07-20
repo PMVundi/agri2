@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Hive Monitor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #f3e8ab;
+        }
+        
+        .risk-critical { background-color: #fef2f2; color: #dc2626; }
+        .risk-high { background-color: #fff7ed; color: #ea580c; }
+        .risk-medium { background-color: #fefce8; color: #ca8a04; }
+        .risk-low { background-color: #f0fdf4; color: #16a34a; }
+        
+        .progress-bar {
+            height: 12px;
+            background-color: #e5e7eb;
+            border-radius: 6px;
+            overflow: hidden;
+            transition: all 0.5s ease;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+            border-radius: 6px;
+        }
+        
+        .alert-critical { background-color: #fef2f2; border-left: 4px solid #dc2626; }
+        .alert-warning { background-color: #fefce8; border-left: 4px solid #eab308; }
+        
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .8; }
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="max-w-7xl mx-auto p-6">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-amber-900 mb-2">Smart Hive Monitor</h1>
+            <p class="text-amber-700">AI-powered bee swarm, disease & pest detection system</p>
+            <div class="flex items-center mt-4 space-x-4 text-sm text-amber-600">
+                <div class="flex items-center">
+                    <i class="fas fa-wifi mr-1"></i>
+                    Connected
+                </div>
+                <div class="flex items-center">
+                    <i class="fas fa-battery-three-quarters mr-1"></i>
+                    89%
+                </div>
+                <div class="flex items-center">
+                    <i class="fas fa-calendar mr-1"></i>
+                    <span id="current-date"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Status Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-6 mb-8">
+            <div class="card p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-amber-600 text-sm font-medium">Temperature</p>
+                        <p class="text-3xl font-bold text-gray-900" id="temp-value">35.2°C</p>
+                    </div>
+                    <i class="fas fa-thermometer-half text-3xl text-red-500"></i>
+                </div>
+            </div>
+            
+            <div class="card p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-amber-600 text-sm font-medium">Sound Level</p>
+                        <p class="text-3xl font-bold text-gray-900" id="sound-value">42.3 dB</p>
+                    </div>
+                    <i class="fas fa-volume-up text-3xl text-blue-500"></i>
+                </div>
+            </div>
+            
+            <div class="card p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-amber-600 text-sm font-medium">Humidity</p>
+                        <p class="text-3xl font-bold text-gray-900" id="humidity-value">68%</p>
+                    </div>
+                    <i class="fas fa-tint text-3xl text-green-500"></i>
+                </div>
+            </div>
+            
+            <div class="card p-6" id="swarm-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium opacity-80">Swarm Risk</p>
+                        <p class="text-3xl font-bold" id="swarm-probability">15%</p>
+                        <p class="text-sm uppercase font-bold mt-1" id="swarm-risk">LOW</p>
+                    </div>
+                    <i class="fas fa-check-circle text-2xl" id="swarm-icon"></i>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-amber-600 text-sm font-medium">Disease Risk</p>
+                        <p class="text-3xl font-bold text-gray-900" id="disease-risk">12%</p>
+                    </div>
+                    <i class="fas fa-shield-alt text-3xl text-purple-500"></i>
+                </div>
+            </div>
+            
+            <div class="card p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-amber-600 text-sm font-medium">Pest Risk</p>
+                        <p class="text-3xl font-bold text-gray-900" id="pest-risk">8%</p>
+                    </div>
+                    <i class="fas fa-bug text-3xl text-red-500"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Prediction Panels -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Swarm Prediction Panel -->
+            <div class="card p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">AI Swarm Prediction</h2>
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-600">Swarm Probability</span>
+                        <span class="text-sm font-bold text-gray-900" id="swarm-prob-text">15%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill bg-green-500" id="swarm-progress" style="width: 15%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-4" id="time-to-swarm" style="display: none;">
+                    <p class="text-sm text-gray-600">Estimated Time to Swarm</p>
+                    <p class="text-lg font-semibold text-gray-900" id="swarm-time"></p>
+                </div>
+                
+                <div>
+                    <p class="text-sm text-gray-600 mb-2">Contributing Factors</p>
+                    <ul id="swarm-factors" class="space-y-1">
+                        <li class="text-sm text-gray-500">No significant risk factors detected</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Health & Pest Detection Panel -->
+            <div class="card p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Health & Pest Detection</h2>
+                
+                <div class="mb-4">
+                    <div class="flex items-center mb-2">
+                        <span class="text-sm font-medium text-gray-600 mr-2">Overall Health:</span>
+                        <span class="px-3 py-1 rounded-full text-sm font-bold bg-green-100 text-green-800" id="overall-health">HEALTHY</span>
+                    </div>
+                </div>
+
+                <div class="space-y-3 mb-4">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-sm font-medium text-gray-600">Disease Risk</span>
+                            <span class="text-sm font-bold text-gray-900" id="disease-risk-text">12%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-purple-500" id="disease-progress" style="width: 12%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-sm font-medium text-gray-600">Pest Risk</span>
+                            <span class="text-sm font-bold text-gray-900" id="pest-risk-text">8%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill bg-red-500" id="pest-progress" style="width: 8%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="detected-issues" style="display: none;" class="mb-4">
+                    <p class="text-sm text-gray-600 mb-2 font-medium">Detected Issues</p>
+                    <div id="issues-list" class="space-y-2"></div>
+                </div>
+
+                <div id="recommendations-section" style="display: none;">
+                    <p class="text-sm text-gray-600 mb-2 font-medium">Recommendations</p>
+                    <ul id="recommendations-list" class="space-y-1"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div class="card p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Temperature & Sound Trends</h3>
+                <div class="chart-container">
+                    <canvas id="temperatureChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="card p-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4">Activity Overview</h3>
+                <div class="chart-container">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="card p-6" id="alerts-section" style="display: none;">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Recent Alerts</h3>
+            <div id="alerts-container" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <script>
+        class SmartHiveMonitor {
+            constructor() {
+                this.currentData = {
+                    temperature: 35.2,
+                    soundLevel: 42.3,
+                    humidity: 68,
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                
+                this.historicalData = [];
+                this.swarmPrediction = {
+                    probability: 15,
+                    risk: 'low',
+                    timeToSwarm: null,
+                    factors: []
+                };
+                
+                this.healthPrediction = {
+                    diseaseRisk: 12,
+                    pestRisk: 8,
+                    overallHealth: 'healthy',
+                    detectedIssues: [],
+                    recommendations: []
+                };
+                
+                this.alerts = [];
+                this.charts = {};
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupCharts();
+                this.updateDisplay();
+                this.startDataGeneration();
+                
+                // Update current date
+                document.getElementById('current-date').textContent = new Date().toLocaleDateString();
+            }
+            
+            setupCharts() {
+                // Temperature & Sound Chart
+                const tempCtx = document.getElementById('temperatureChart').getContext('2d');
+                this.charts.temperature = new Chart(tempCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Temperature (°C)',
+                            data: [],
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4
+                        }, {
+                            label: 'Sound (dB)',
+                            data: [],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Time'
+                                }
+                            },
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Value'
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Activity Chart
+                const activityCtx = document.getElementById('activityChart').getContext('2d');
+                this.charts.activity = new Chart(activityCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Sound Level',
+                            data: [],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.6)',
+                            fill: true,
+                            tension: 0.4
+                        }, {
+                            label: 'Humidity',
+                            data: [],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.4)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Time'
+                                }
+                            },
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Value'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            generateRealisticData() {
+                const time = new Date();
+                const hour = time.getHours();
+                
+                const baseTemp = 35 + Math.sin((hour - 6) * Math.PI / 12) * 3;
+                const tempVariation = (Math.random() - 0.5) * 2;
+                const temperature = Math.max(20, Math.min(45, baseTemp + tempVariation));
+                
+                const baseSound = 40 + Math.sin((hour - 8) * Math.PI / 10) * 5;
+                const soundVariation = (Math.random() - 0.5) * 8;
+                let soundLevel = Math.max(25, Math.min(80, baseSound + soundVariation));
+                
+                if (Math.random() < 0.05) {
+                    if (Math.random() < 0.3) {
+                        soundLevel *= 0.7;
+                    }
+                    if (Math.random() < 0.3) {
+                        soundLevel += Math.random() * 20;
+                    }
+                }
+                
+                const humidity = 65 + (Math.random() - 0.5) * 10;
+                
+                return {
+                    temperature: parseFloat(temperature.toFixed(1)),
+                    soundLevel: parseFloat(soundLevel.toFixed(1)),
+                    humidity: parseFloat(humidity.toFixed(1)),
+                    timestamp: time.toLocaleTimeString(),
+                    hour: time.getHours(),
+                    minute: time.getMinutes()
+                };
+            }
+            
+            calculateVariance(values) {
+                if (values.length === 0) return 0;
+                const mean = values.reduce((a, b) => a + b, 0) / values.length;
+                const squaredDiffs = values.map(value => Math.pow(value - mean, 2));
+                return squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
+            }
+            
+            predictHealthIssues(data) {
+                let diseaseRisk = 0;
+                let pestRisk = 0;
+                let detectedIssues = [];
+                let recommendations = [];
+
+                // Disease Detection Patterns
+                if (data.temperature > 36.5 && data.soundLevel < 35) {
+                    diseaseRisk += 30;
+                    detectedIssues.push({
+                        type: 'Varroa Mites',
+                        confidence: 75,
+                        symptoms: 'Elevated temperature with reduced activity'
+                    });
+                    recommendations.push('Consider varroa mite treatment immediately');
+                }
+
+                if (this.historicalData.length >= 10) {
+                    const tempVariance = this.calculateVariance(this.historicalData.slice(-10).map(d => d.temperature));
+                    const avgSound = this.historicalData.slice(-5).reduce((acc, d) => acc + d.sound, 0) / 5;
+                    
+                    if (tempVariance > 3 && avgSound < 38) {
+                        diseaseRisk += 25;
+                        detectedIssues.push({
+                            type: 'Nosema',
+                            confidence: 65,
+                            symptoms: 'Temperature instability with low activity'
+                        });
+                        recommendations.push('Monitor for Nosema symptoms, consider treatment');
+                    }
+                }
+
+                if (data.temperature < 32 && data.soundLevel < 30) {
+                    diseaseRisk += 40;
+                    detectedIssues.push({
+                        type: 'American Foulbrood',
+                        confidence: 80,
+                        symptoms: 'Critically low temperature and activity'
+                    });
+                    recommendations.push('URGENT: Inspect for American Foulbrood immediately');
+                }
+
+                // Pest Detection Patterns
+                if (this.historicalData.length >= 5) {
+                    const soundSpikes = this.historicalData.slice(-5).filter(d => d.sound > 60).length;
+                    if (soundSpikes >= 2 && data.temperature >= 33 && data.temperature <= 37) {
+                        pestRisk += 35;
+                        detectedIssues.push({
+                            type: 'Small Hive Beetle',
+                            confidence: 70,
+                            symptoms: 'Irregular sound spikes with normal temperature'
+                        });
+                        recommendations.push('Check for small hive beetle infestation');
+                    }
+                }
+
+                if (data.temperature > 37.5 && data.soundLevel > 58) {
+                    pestRisk += 30;
+                    detectedIssues.push({
+                        type: 'Wax Moth',
+                        confidence: 68,
+                        symptoms: 'High temperature with increased sound activity'
+                    });
+                    recommendations.push('Inspect for wax moth larvae and damage');
+                }
+
+                if ((data.hour < 8 || data.hour > 18) && data.soundLevel > 55) {
+                    pestRisk += 25;
+                    detectedIssues.push({
+                        type: 'Robber Bees',
+                        confidence: 60,
+                        symptoms: 'Unusual activity during off-peak hours'
+                    });
+                    recommendations.push('Monitor entrance for robbing behavior');
+                }
+
+                const totalRisk = Math.max(diseaseRisk, pestRisk);
+                let overallHealth = 'healthy';
+                
+                if (totalRisk >= 60) {
+                    overallHealth = 'critical';
+                } else if (totalRisk >= 35) {
+                    overallHealth = 'poor';
+                } else if (totalRisk >= 15) {
+                    overallHealth = 'fair';
+                }
+
+                if (data.temperature < 30) {
+                    recommendations.push('Consider supplemental heating');
+                }
+                if (data.humidity > 75) {
+                    recommendations.push('Improve ventilation to reduce moisture');
+                }
+                if (data.soundLevel < 25) {
+                    recommendations.push('Check colony strength and queen status');
+                }
+
+                this.healthPrediction = {
+                    diseaseRisk: Math.min(100, diseaseRisk),
+                    pestRisk: Math.min(100, pestRisk),
+                    overallHealth,
+                    detectedIssues: detectedIssues.slice(0, 3),
+                    recommendations: recommendations.slice(0, 4)
+                };
+
+                if (totalRisk >= 50 && !this.alerts.some(a => a.type === 'health_alert')) {
+                    const primaryIssue = detectedIssues[0];
+                    this.alerts.push({
+                        id: Date.now(),
+                        type: 'health_alert',
+                        message: `Health concern detected: ${primaryIssue ? primaryIssue.type : 'Multiple issues'}`,
+                        timestamp: new Date().toLocaleTimeString(),
+                        severity: totalRisk >= 60 ? 'critical' : 'warning'
+                    });
+                    this.alerts = this.alerts.slice(-3);
+                }
+            }
+            
+            predictSwarmBehavior(data) {
+                let probability = 0;
+                let factors = [];
+                let risk = 'low';
+
+                if (data.temperature >= 30 && data.temperature <= 38) {
+                    probability += 20;
+                    factors.push('Optimal swarming temperature');
+                } else if (data.temperature < 25 || data.temperature > 40) {
+                    probability -= 10;
+                }
+
+                if (data.soundLevel > 55) {
+                    probability += 35;
+                    factors.push('Elevated sound levels detected');
+                } else if (data.soundLevel > 50) {
+                    probability += 20;
+                    factors.push('Increased hive activity');
+                }
+
+                if (data.hour >= 10 && data.hour <= 15) {
+                    probability += 15;
+                    factors.push('Peak swarming time window');
+                }
+
+                if (this.historicalData.length >= 5) {
+                    const recentSounds = this.historicalData.slice(-5).map(d => d.sound);
+                    const avgRecent = recentSounds.reduce((a, b) => a + b, 0) / recentSounds.length;
+                    const trend = recentSounds[recentSounds.length - 1] - avgRecent;
+                    
+                    if (trend > 5) {
+                        probability += 25;
+                        factors.push('Rising sound trend detected');
+                    }
+                }
+
+                probability = Math.max(0, Math.min(100, probability));
+
+                if (probability >= 70) {
+                    risk = 'critical';
+                } else if (probability >= 40) {
+                    risk = 'high';
+                } else if (probability >= 20) {
+                    risk = 'medium';
+                }
+
+                let timeToSwarm = null;
+                if (probability >= 60) {
+                    timeToSwarm = '1-3 hours';
+                } else if (probability >= 40) {
+                    timeToSwarm = '6-12 hours';
+                } else if (probability >= 25) {
+                    timeToSwarm = '1-2 days';
+                }
+
+                this.swarmPrediction = {
+                    probability: Math.round(probability),
+                    risk,
+                    timeToSwarm,
+                    factors
+                };
+
+                if (probability >= 50 && !this.alerts.some(a => a.type === 'swarm_warning')) {
+                    this.alerts.push({
+                        id: Date.now(),
+                        type: 'swarm_warning',
+                        message: `High swarm probability detected (${Math.round(probability)}%)`,
+                        timestamp: new Date().toLocaleTimeString(),
+                        severity: probability >= 70 ? 'critical' : 'warning'
+                    });
+                    this.alerts = this.alerts.slice(-3);
+                }
+            }
+            
+            updateDisplay() {
+                // Update current values
+                document.getElementById('temp-value').textContent = `${this.currentData.temperature}°C`;
+                document.getElementById('sound-value').textContent = `${this.currentData.soundLevel} dB`;
+                document.getElementById('humidity-value').textContent = `${this.currentData.humidity}%`;
+                
+                // Update swarm prediction
+                const swarmCard = document.getElementById('swarm-card');
+                swarmCard.className = `card p-6 ${this.getRiskColor(this.swarmPrediction.risk)}`;
+                document.getElementById('swarm-probability').textContent = `${this.swarmPrediction.probability}%`;
+                document.getElementById('swarm-risk').textContent = this.swarmPrediction.risk.toUpperCase();
+                
+                const swarmIcon = document.getElementById('swarm-icon');
+                if (this.swarmPrediction.risk === 'critical' || this.swarmPrediction.risk === 'high') {
+                    swarmIcon.className = 'fas fa-exclamation-triangle text-2xl';
+                } else {
+                    swarmIcon.className = 'fas fa-check-circle text-2xl';
+                }
+                
+                // Update health risks
+                document.getElementById('disease-risk').textContent = `${this.healthPrediction.diseaseRisk}%`;
+                document.getElementById('pest-risk').textContent = `${this.healthPrediction.pestRisk}%`;
+                
+                // Update swarm prediction panel
+                document.getElementById('swarm-prob-text').textContent = `${this.swarmPrediction.probability}%`;
+                
+                const swarmProgress = document.getElementById('swarm-progress');
+                swarmProgress.style.width = `${this.swarmPrediction.probability}%`;
+                swarmProgress.className = `progress-fill ${this.getProgressColor(this.swarmPrediction.probability)}`;
+                
+                // Time to swarm
+                const timeToSwarmDiv = document.getElementById('time-to-swarm');
+                if (this.swarmPrediction.timeToSwarm) {
+                    timeToSwarmDiv.style.display = 'block';
+                    document.getElementById('swarm-time').textContent = this.swarmPrediction.timeToSwarm;
+                } else {
+                    timeToSwarmDiv.style.display = 'none';
+                }
+                
+                // Swarm factors
+                const factorsList = document.getElementById('swarm-factors');
+                if (this.swarmPrediction.factors.length > 0) {
+                    factorsList.innerHTML = this.swarmPrediction.factors.map(factor => 
+                        `<li class="text-sm text-gray-800 flex items-center">
+                            <div class="w-2 h-2 bg-amber-400 rounded-full mr-2"></div>
+                            ${factor}
+                        </li>`
+                    ).join('');
+                } else {
+                    factorsList.innerHTML = '<li class="text-sm text-gray-500">No significant risk factors detected</li>';
+                }
+                
+                // Update health panel
+                const healthSpan = document.getElementById('overall-health');
+                healthSpan.textContent = this.healthPrediction.overallHealth.toUpperCase();
+                healthSpan.className = `px-3 py-1 rounded-full text-sm font-bold ${this.getHealthColor(this.healthPrediction.overallHealth)}`;
+                
+                document.getElementById('disease-risk-text').textContent = `${this.healthPrediction.diseaseRisk}%`;
+                document.getElementById('pest-risk-text').textContent = `${this.healthPrediction.pestRisk}%`;
+                
+                document.getElementById('disease-progress').style.width = `${this.healthPrediction.diseaseRisk}%`;
+                document.getElementById('pest-progress').style.width = `${this.healthPrediction.pestRisk}%`;
+                
+                // Detected issues
+                const issuesSection = document.getElementById('detected-issues');
+                if (this.healthPrediction.detectedIssues.length > 0) {
+                    issuesSection.style.display = 'block';
+                    const issuesList = document.getElementById('issues-list');
+                    issuesList.innerHTML = this.healthPrediction.detectedIssues.map(issue => 
+                        `<div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-red-800">${issue.type}</span>
+                                <span class="text-xs text-red-600">${issue.confidence}% confidence</span>
+                            </div>
+                            <p class="text-xs text-red-700">${issue.symptoms}</p>
+                        </div>`
+                    ).join('');
+                } else {
+                    issuesSection.style.display = 'none';
+                }
+                
+                // Recommendations
+                const recommendationsSection = document.getElementById('recommendations-section');
+                if (this.healthPrediction.recommendations.length > 0) {
+                    recommendationsSection.style.display = 'block';
+                    const recommendationsList = document.getElementById('recommendations-list');
+                    recommendationsList.innerHTML = this.healthPrediction.recommendations.map(rec => 
+                        `<li class="text-sm text-gray-800 flex items-start">
+                            <div class="w-2 h-2 bg-blue-400 rounded-full mr-2 mt-1.5 flex-shrink-0"></div>
+                            ${rec}
+                        </li>`
+                    ).join('');
+                } else {
+                    recommendationsSection.style.display = 'none';
+                }
+                
+                // Update alerts
+                if (this.alerts.length > 0) {
+                    const alertsSection = document.getElementById('alerts-section');
+                    alertsSection.style.display = 'block';
+                    const alertsContainer = document.getElementById('alerts-container');
+                    alertsContainer.innerHTML = this.alerts.slice(-3).map(alert => 
+                        `<div class="p-4 rounded-lg ${alert.severity === 'critical' ? 'alert-critical' : 'alert-warning'}">
+                            <div class="flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-3 ${alert.severity === 'critical' ? 'text-red-500' : 'text-yellow-500'}"></i>
+                                <div>
+                                    <p class="font-medium text-gray-900">${alert.message}</p>
+                                    <p class="text-sm text-gray-500">${alert.timestamp}</p>
+                                </div>
+                            </div>
+                        </div>`
+                    ).join('');
+                } else {
+                    document.getElementById('alerts-section').style.display = 'none';
+                }
+            }
+            
+            getRiskColor(risk) {
+                switch (risk) {
+                    case 'critical': return 'risk-critical';
+                    case 'high': return 'risk-high';
+                    case 'medium': return 'risk-medium';
+                    default: return 'risk-low';
+                }
+            }
+            
+            getProgressColor(percentage) {
+                if (percentage >= 70) return 'bg-red-500';
+                if (percentage >= 40) return 'bg-orange-500';
+                if (percentage >= 20) return 'bg-yellow-500';
+                return 'bg-green-500';
+            }
+            
+            getHealthColor(health) {
+                switch (health) {
+                    case 'healthy': return 'bg-green-100 text-green-800';
+                    case 'fair': return 'bg-yellow-100 text-yellow-800';
+                    case 'poor': return 'bg-orange-100 text-orange-800';
+                    case 'critical': return 'bg-red-100 text-red-800';
+                    default: return 'bg-green-100 text-green-800';
+                }
+            }
+            
+            updateCharts() {
+                if (this.historicalData.length === 0) return;
+                
+                const labels = this.historicalData.map(d => d.time);
+                const temperatures = this.historicalData.map(d => d.temperature);
+                const sounds = this.historicalData.map(d => d.sound);
+                const humidity = this.historicalData.map(d => d.humidity);
+                
+                // Update temperature chart
+                this.charts.temperature.data.labels = labels;
+                this.charts.temperature.data.datasets[0].data = temperatures;
+                this.charts.temperature.data.datasets[1].data = sounds;
+                this.charts.temperature.update('none');
+                
+                // Update activity chart
+                this.charts.activity.data.labels = labels;
+                this.charts.activity.data.datasets[0].data = sounds;
+                this.charts.activity.data.datasets[1].data = humidity;
+                this.charts.activity.update('none');
+            }
+            
+            startDataGeneration() {
+                setInterval(() => {
+                    const newData = this.generateRealisticData();
+                    this.currentData = newData;
+                    
+                    // Keep last 20 data points for chart
+                    this.historicalData.push({
+                        time: newData.timestamp,
+                        temperature: newData.temperature,
+                        sound: newData.soundLevel,
+                        humidity: newData.humidity
+                    });
+                    
+                    if (this.historicalData.length > 20) {
+                        this.historicalData = this.historicalData.slice(-20);
+                    }
+
+                    // AI Prediction Logic
+                    this.predictSwarmBehavior(newData);
+                    this.predictHealthIssues(newData);
+                    
+                    // Update display
+                    this.updateDisplay();
+                    this.updateCharts();
+                }, 2000);
+            }
+        }
+        
+        // Initialize the monitor when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            new SmartHiveMonitor();
+        });
+    </script>
+</body>
+</html>**
